@@ -78,6 +78,16 @@ export default function App() {
 
       <footer className="app-footer">
         <span>Fully offline PWA · All calculations run on-device · No data sent anywhere</span>
+        <span>
+          © 2025 Sun Moon Solar ·{' '}
+          <a
+            href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            CC BY-NC-SA 4.0
+          </a>
+        </span>
       </footer>
     </div>
   )

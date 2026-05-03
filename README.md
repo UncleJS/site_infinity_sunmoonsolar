@@ -2,6 +2,13 @@
 
 A fully offline Progressive Web App (PWA) for sun position, moon phase, and solar panel optimisation. All calculations run on-device using your browser — no server, no API calls, no data sent anywhere.
 
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+[![PWA Ready](https://img.shields.io/badge/PWA-ready-5A0FC8?logo=pwa)](https://web.dev/progressive-web-apps/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Offline](https://img.shields.io/badge/offline-100%25-brightgreen)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Offline_and_background_operation)
+
 <a id="toc"></a>
 
 ## Contents
@@ -17,6 +24,7 @@ A fully offline Progressive Web App (PWA) for sun position, moon phase, and sola
 - [Solar Declination Explained](#solar-declination-explained)
 - [Glossary](#glossary)
 - [Technical Notes](#technical-notes)
+- [License](#license)
 
 ---
 
@@ -299,7 +307,7 @@ This app classifies locations as Northern (latitude > 5°), Southern (latitude <
 The percentage of the moon's visible face currently lit by reflected sunlight. 0% at new moon, 100% at full moon. Note that illumination alone does not tell you whether the moon is waxing or waning — the phase name provides that context.
 
 **Midpoint (solar / lunar)**
-The moment halfway in time between rise and set for a given day. For the sun this is close to solar noon (the moment the sun reaches its highest point) but may differ slightly due to the equation of time. For the moon the midpoint is the moment of highest elevation for that day's passage.
+The moment the body crosses the observer's meridian and reaches its highest elevation for that passage — the true upper transit. For the sun this is true solar noon; for the moon it is the culmination. This is computed directly from the astronomy engine, not as an arithmetic average of rise and set times. Shows — if no transit occurs within that calendar day (possible for the moon at high latitudes or when the moon's arc straddles midnight).
 
 **Optimal tilt**
 The angle from horizontal at which a solar panel should be tilted to receive sunlight perpendicularly at solar noon. Calculated as `|latitude − solar declination|` for a panel facing the equator. Ranges from close to 0° (equatorial summer) to around 75°–80° (high-latitude winter).
@@ -333,5 +341,19 @@ The four key points in the solar year. At the **equinoxes** (≈ 20 March and 23
 | Default location | London, UK (51.5074°N, 0.1278°W, `Europe/London`) |
 | Container | Rootless Podman; Bun runtime inside container; host requires only Podman and a POSIX shell |
 | Offline | Fully functional without network after initial load; no external fonts, no CDN resources, no analytics |
+
+[↑ Back to contents](#toc)
+
+---
+
+## License
+
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+**Sun Moon Solar** © 2025
+
+This project is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+
+You are free to share and adapt this work for non-commercial purposes, provided you give appropriate credit and distribute any derivative works under the same license. See [LICENSE.md](./LICENSE.md) for the full terms.
 
 [↑ Back to contents](#toc)

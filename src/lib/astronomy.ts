@@ -1,5 +1,4 @@
 import * as Astronomy from 'astronomy-engine'
-import { midpoint } from './format'
 
 export interface RiseSetRow {
   date: Date
@@ -66,6 +65,25 @@ function trySet(
   }
 }
 
+function tryTransit(
+  body: Astronomy.Body,
+  observer: Astronomy.Observer,
+  date: Date
+): Date | null {
+  try {
+    const startTime = Astronomy.MakeTime(date)
+    const result = Astronomy.SearchHourAngle(body, observer, 0, startTime)
+    if (!result) return null
+    const next = new Date(date)
+    next.setDate(next.getDate() + 1)
+    const t = result.time.date
+    if (t < date || t >= next) return null
+    return t
+  } catch {
+    return null
+  }
+}
+
 // ─── Sun ────────────────────────────────────────────────────────────────────
 
 /**
@@ -80,7 +98,7 @@ export function getSunWeek(lat: number, lng: number, days = 7): RiseSetRow[] {
     const date = startOfDay(now, i)
     const rise = tryRise(Astronomy.Body.Sun, observer, date)
     const set = trySet(Astronomy.Body.Sun, observer, date)
-    const mid = rise && set ? midpoint(rise, set) : null
+    const mid = tryTransit(Astronomy.Body.Sun, observer, date)
     rows.push({ date, rise, set, midpoint: mid })
   }
   return rows
@@ -107,7 +125,7 @@ export function getMoonWeek(lat: number, lng: number, days = 7): RiseSetRow[] {
     const date = startOfDay(now, i)
     const rise = tryRise(Astronomy.Body.Moon, observer, date)
     const set = trySet(Astronomy.Body.Moon, observer, date)
-    const mid = rise && set ? midpoint(rise, set) : null
+    const mid = tryTransit(Astronomy.Body.Moon, observer, date)
     rows.push({ date, rise, set, midpoint: mid })
   }
   return rows
