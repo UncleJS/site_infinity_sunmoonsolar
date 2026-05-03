@@ -8,6 +8,7 @@ A fully offline Progressive Web App (PWA) for sun position, moon phase, and sola
 
 - [Features](#features)
 - [Getting Started (Development)](#getting-started-development)
+- [Deploying / Hosting](#deploying--hosting)
 - [Usage](#usage)
   - [Setting Your Location](#setting-your-location)
   - [☀️ Sun Tab](#sun-tab)
@@ -64,6 +65,59 @@ podman logs -f utility-sunmoonsolar-dev
 ```bash
 podman rm -f utility-sunmoonsolar-dev
 ```
+
+[↑ Back to contents](#toc)
+
+---
+
+## Deploying / Hosting
+
+This is a fully static app — no server-side runtime is required. You only need a web server that can serve static files.
+
+### 1. Build the production bundle
+
+Run the build inside the dev container:
+
+```bash
+podman exec utility-sunmoonsolar-dev bun run build
+```
+
+This runs `tsc && vite build` and writes the output to the `dist/` folder in the project root.
+
+### 2. Copy `dist/` to your web server
+
+The **`dist/`** folder is the only thing you need to deploy. Copy its entire contents to your web server's document root (e.g. `/var/www/html/` or the equivalent for your host):
+
+```bash
+rsync -av dist/ user@yourserver:/var/www/html/
+```
+
+`dist/` contains the compiled HTML, JS bundles, CSS, service worker, PWA manifest, and icons — everything needed to run the app offline after the first load.
+
+### 3. Configure your web server for SPA routing
+
+Because the app uses client-side routing, your web server must serve `index.html` for any path that does not match a real file. Without this, direct URL access and page refreshes will return 404 errors.
+
+**nginx**
+
+```nginx
+location / {
+    try_files $uri $uri/ /index.html;
+}
+```
+
+**Apache** (`.htaccess` in document root)
+
+```apache
+Options -MultiViews
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.html [QSA,L]
+```
+
+**Netlify / Vercel / GitHub Pages**
+
+SPA fallback is handled automatically — no extra configuration needed.
 
 [↑ Back to contents](#toc)
 

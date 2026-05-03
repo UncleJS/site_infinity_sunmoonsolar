@@ -153,9 +153,6 @@ export function getMoonIllumination(when?: Date): number {
 /** Moon phase name from angle */
 export function getMoonPhaseName(when?: Date): string {
   const t = when ? Astronomy.MakeTime(when) : Astronomy.MakeTime(new Date())
-  const illum = Astronomy.Illumination(Astronomy.Body.Moon, t)
-  const angle = illum.phase_angle
-  // phase_angle: 0=full, 180=new, decreasing=waxing, increasing=waning
   // Use MoonPhase to get ecliptic longitude angle (0–360)
   const moonPhase = Astronomy.MoonPhase(t) // 0=New, 90=FQ, 180=Full, 270=LQ
 
