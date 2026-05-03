@@ -31,5 +31,14 @@ podman run -d \
   localhost/utility-sunmoonsolar-dev:latest
 
 echo ""
+echo "==> Building production bundle..."
+podman exec utility-sunmoonsolar-dev bun run build
+
+echo "==> Syncing dist/ to host..."
+rm -rf "$REPO_DIR/dist"
+podman cp utility-sunmoonsolar-dev:/app/dist "$REPO_DIR/dist"
+echo "dist/ updated at: $REPO_DIR/dist"
+
+echo ""
 echo "Dev server running at: http://localhost:1026"
 echo "Logs: podman logs -f utility-sunmoonsolar-dev"
