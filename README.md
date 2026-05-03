@@ -42,17 +42,25 @@ A fully offline Progressive Web App (PWA) for sun position, moon phase, and sola
 
 ### Build and run
 
+Use the provided `dev.sh` script — it handles everything in one command:
+
 ```bash
-podman build -t localhost/utility-sunmoonsolar-dev:latest -f Containerfile.dev .
-podman rm -f utility-sunmoonsolar-dev 2>/dev/null || true
-podman run -d --name utility-sunmoonsolar-dev -p 1026:1026 localhost/utility-sunmoonsolar-dev:latest
+bash dev.sh
 ```
 
-The app is then available at **http://localhost:1026**
+`dev.sh` performs these steps in order:
+
+1. Builds the dev container image from `Containerfile.dev`
+2. Removes the old `utility-sunmoonsolar-dev` container (if running)
+3. Starts a new container on port **1026**
+4. Runs the production build (`tsc && vite build`) inside the container
+5. Copies the fresh `dist/` folder to the project root on the host
+
+The app is then available at **http://localhost:1026** and `dist/` is ready to deploy.
 
 ### After any source change
 
-Rebuild and restart the dev container using the same three commands above. The Vite dev server runs inside the container and serves the app with hot-module replacement disabled (full rebuild each time).
+Run `bash dev.sh` again. It always does a full rebuild and refreshes `dist/` automatically.
 
 ### View logs
 
