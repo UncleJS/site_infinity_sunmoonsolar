@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install bun
+RUN npm install -g bun
+
+# Copy package files and install dependencies
+COPY package.json bun.lockb* ./
+RUN bun install
+
+# Copy source
+COPY . .
+
+# Expose dev port
+EXPOSE 1026
+
+# Start vite dev server bound to all interfaces
+CMD ["bun", "run", "dev", "--host", "0.0.0.0", "--port", "1026"]

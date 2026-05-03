@@ -1,0 +1,15 @@
+[Unit]
+Description=utility-sunmoonsolar dev container
+After=local-fs.target
+
+[Container]
+ContainerName=utility-sunmoonsolar-dev
+Image=localhost/utility-sunmoonsolar-dev:latest
+PublishPort=1026:1026
+AutoUpdate=local
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
