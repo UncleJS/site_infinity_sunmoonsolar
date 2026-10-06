@@ -1,5 +1,4 @@
 import { useState, useMemo, useId, type KeyboardEvent } from 'react'
-import tzlookup from 'tz-lookup'
 import { searchCities, type City } from '../data/cities'
 import type { Location } from '../lib/favorites'
 import {
@@ -9,7 +8,6 @@ import {
   renameFavorite,
   isFavorite,
 } from '../lib/favorites'
-import { isValidTimeZone } from '../lib/timezone'
 
 interface Props {
   location: Location
@@ -66,20 +64,13 @@ export function LocationPanel({ location, onLocationChange }: Props) {
       return
     }
     setLatLngError('')
-    let tz = 'UTC'
-    let lookedUp = false
-    try {
-      tz = tzlookup(lat, lng)
-      lookedUp = true
-    } catch {
-      tz = 'UTC'
-    }
-    if (!isValidTimeZone(tz)) {
-      tz = 'UTC'
-      lookedUp = false
-    }
-    setTzWarning(lookedUp ? '' : 'Timezone could not be resolved; times shown in UTC.')
-    onLocationChange({ name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`, lat, lng, timezone: tz })
+    setTzWarning('Times shown in UTC. Pick a city for a local timezone.')
+    onLocationChange({
+      name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      lat,
+      lng,
+      timezone: 'UTC',
+    })
     setShowNameForm(false)
   }
 

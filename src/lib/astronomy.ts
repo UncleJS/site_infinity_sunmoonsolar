@@ -1,4 +1,15 @@
-import * as Astronomy from 'astronomy-engine'
+import {
+  Body,
+  Equator,
+  Horizon,
+  Illumination,
+  MakeTime,
+  MoonPhase,
+  Observer,
+  SearchHourAngle,
+  SearchMoonPhase,
+  SearchRiseSet,
+} from 'astronomy-engine'
 import { civilDayBounds, safeTimeZone } from './timezone'
 
 export interface RiseSetRow {
@@ -9,8 +20,8 @@ export interface RiseSetRow {
 }
 
 export interface BodyPosition {
-  azimuth: number     // degrees from North, clockwise
-  altitude: number    // degrees above horizon (elevation)
+  azimuth: number
+  altitude: number
 }
 
 export interface MoonPhaseEvent {
@@ -18,8 +29,8 @@ export interface MoonPhaseEvent {
   name: string
 }
 
-function toObserver(lat: number, lng: number): Astronomy.Observer {
-  return new Astronomy.Observer(lat, lng, 0)
+function toObserver(lat: number, lng: number): Observer {
+  return new Observer(lat, lng, 0)
 }
 
 function inWindow(event: Date, start: Date, end: Date): boolean {
@@ -28,18 +39,12 @@ function inWindow(event: Date, start: Date, end: Date): boolean {
 
 function searchLimitDays(start: Date, end: Date): number {
   const ms = end.getTime() - start.getTime()
-  // Cover 23h–25h civil days plus a small rounding margin.
   return Math.max(ms / 86_400_000, 1) + 0.15
 }
 
-function tryRise(
-  body: Astronomy.Body,
-  observer: Astronomy.Observer,
-  start: Date,
-  end: Date,
-): Date | null {
+function tryRise(body: Body, observer: Observer, start: Date, end: Date): Date | null {
   try {
-    const r = Astronomy.SearchRiseSet(body, observer, +1, start, searchLimitDays(start, end))
+    const r = SearchRiseSet(body, observer, +1, start, searchLimitDays(start, end))
     if (!r) return null
     if (!inWindow(r.date, start, end)) return null
     return r.date
@@ -48,14 +53,9 @@ function tryRise(
   }
 }
 
-function trySet(
-  body: Astronomy.Body,
-  observer: Astronomy.Observer,
-  start: Date,
-  end: Date,
-): Date | null {
+function trySet(body: Body, observer: Observer, start: Date, end: Date): Date | null {
   try {
-    const s = Astronomy.SearchRiseSet(body, observer, -1, start, searchLimitDays(start, end))
+    const s = SearchRiseSet(body, observer, -1, start, searchLimitDays(start, end))
     if (!s) return null
     if (!inWindow(s.date, start, end)) return null
     return s.date
@@ -64,15 +64,10 @@ function trySet(
   }
 }
 
-function tryTransit(
-  body: Astronomy.Body,
-  observer: Astronomy.Observer,
-  start: Date,
-  end: Date,
-): Date | null {
+function tryTransit(body: Body, observer: Observer, start: Date, end: Date): Date | null {
   try {
-    const startTime = Astronomy.MakeTime(start)
-    const result = Astronomy.SearchHourAngle(body, observer, 0, startTime)
+    const startTime = MakeTime(start)
+    const result = SearchHourAngle(body, observer, 0, startTime)
     if (!result) return null
     const t = result.time.date
     if (!inWindow(t, start, end)) return null
@@ -83,7 +78,7 @@ function tryTransit(
 }
 
 function weekForBody(
-  body: Astronomy.Body,
+  body: Body,
   lat: number,
   lng: number,
   timezone: string,
@@ -106,10 +101,6 @@ function weekForBody(
   return rows
 }
 
-/**
- * Sunrise / sunset / meridian transit for the next `days` civil days
- * in `timezone` (not the device clock).
- */
 export function getSunWeek(
   lat: number,
   lng: number,
@@ -117,19 +108,17 @@ export function getSunWeek(
   when: Date = new Date(),
   days = 7,
 ): RiseSetRow[] {
-  return weekForBody(Astronomy.Body.Sun, lat, lng, timezone, when, days)
+  return weekForBody(Body.Sun, lat, lng, timezone, when, days)
 }
 
-/** Current sun azimuth and altitude */
 export function getSunPosition(lat: number, lng: number, when?: Date): BodyPosition {
   const observer = toObserver(lat, lng)
-  const t = when ? Astronomy.MakeTime(when) : Astronomy.MakeTime(new Date())
-  const eq = Astronomy.Equator(Astronomy.Body.Sun, t, observer, true, true)
-  const hor = Astronomy.Horizon(t, observer, eq.ra, eq.dec, 'normal')
+  const t = when ? MakeTime(when) : MakeTime(new Date())
+  const eq = Equator(Body.Sun, t, observer, true, true)
+  const hor = Horizon(t, observer, eq.ra, eq.dec, 'normal')
   return { azimuth: hor.azimuth, altitude: hor.altitude }
 }
 
-/** Moonrise / moonset / transit for the next `days` civil days in `timezone`. */
 export function getMoonWeek(
   lat: number,
   lng: number,
@@ -137,19 +126,17 @@ export function getMoonWeek(
   when: Date = new Date(),
   days = 7,
 ): RiseSetRow[] {
-  return weekForBody(Astronomy.Body.Moon, lat, lng, timezone, when, days)
+  return weekForBody(Body.Moon, lat, lng, timezone, when, days)
 }
 
-/** Current moon azimuth and altitude */
 export function getMoonPosition(lat: number, lng: number, when?: Date): BodyPosition {
   const observer = toObserver(lat, lng)
-  const t = when ? Astronomy.MakeTime(when) : Astronomy.MakeTime(new Date())
-  const eq = Astronomy.Equator(Astronomy.Body.Moon, t, observer, true, true)
-  const hor = Astronomy.Horizon(t, observer, eq.ra, eq.dec, 'normal')
+  const t = when ? MakeTime(when) : MakeTime(new Date())
+  const eq = Equator(Body.Moon, t, observer, true, true)
+  const hor = Horizon(t, observer, eq.ra, eq.dec, 'normal')
   return { azimuth: hor.azimuth, altitude: hor.altitude }
 }
 
-/** Full-moon dates for the next `months` months from `when`. */
 export function getFullMoons(months = 6, when: Date = new Date()): MoonPhaseEvent[] {
   const events: MoonPhaseEvent[] = []
   let search = new Date(when)
@@ -158,7 +145,7 @@ export function getFullMoons(months = 6, when: Date = new Date()): MoonPhaseEven
 
   while (search < end) {
     try {
-      const phase = Astronomy.SearchMoonPhase(180, search, 40)
+      const phase = SearchMoonPhase(180, search, 40)
       if (!phase || phase.date >= end) break
       events.push({ date: phase.date, name: 'Full Moon' })
       search = new Date(phase.date.getTime() + 24 * 60 * 60 * 1000)
@@ -169,20 +156,15 @@ export function getFullMoons(months = 6, when: Date = new Date()): MoonPhaseEven
   return events
 }
 
-/** Moon illumination percentage */
 export function getMoonIllumination(when?: Date): number {
-  const t = when ? Astronomy.MakeTime(when) : Astronomy.MakeTime(new Date())
-  const illum = Astronomy.Illumination(Astronomy.Body.Moon, t)
+  const t = when ? MakeTime(when) : MakeTime(new Date())
+  const illum = Illumination(Body.Moon, t)
   return Math.round(illum.phase_fraction * 100)
 }
 
-/**
- * Moon phase name from ecliptic longitude, binned into eight ~45° sectors
- * centred on the named phases (New 0°, First Quarter 90°, Full 180°, Last Quarter 270°).
- */
 export function getMoonPhaseName(when?: Date): string {
-  const t = when ? Astronomy.MakeTime(when) : Astronomy.MakeTime(new Date())
-  const moonPhase = Astronomy.MoonPhase(t)
+  const t = when ? MakeTime(when) : MakeTime(new Date())
+  const moonPhase = MoonPhase(t)
 
   if (moonPhase < 22.5 || moonPhase >= 337.5) return 'New Moon'
   if (moonPhase < 67.5) return 'Waxing Crescent'

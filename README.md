@@ -33,8 +33,8 @@ A fully offline Progressive Web App (PWA) for sun position, moon phase, and sola
 - **☀️ Sun** — live azimuth and elevation with compass rose and elevation arc instruments; 7-day sunrise, solar midpoint, and sunset table
 - **🌕 Moon** — live azimuth, elevation, phase name, and illumination percentage; 7-day moonrise/midpoint/moonset table; next 6 full moon dates
 - **⚡ Solar** — optimal solar panel face direction, summer/winter/year-round tilt angles, visual angle diagram, and a 12-month optimal tilt table based on solar declination
-- **📍 Location** — search 100 bundled cities by name or country; enter any latitude/longitude manually; save, rename, and remove named favourites (persisted in `localStorage`)
-- Fully offline after first load — installable as a PWA on desktop and mobile (192/512 PNG icons plus a padded maskable icon)
+- **📍 Location** — search 28 bundled cities by name or country; enter any latitude/longitude manually (times in UTC); save, rename, and remove named favourites (persisted in `localStorage`)
+- Fully offline after first load — installable as a PWA on desktop and mobile (SVG favicon + 192 PNG icon)
 - Clock updates every 30 seconds in the **selected location's** timezone (hours and minutes, no frozen seconds)
 
 [↑ Back to contents](#toc)
@@ -146,10 +146,10 @@ SPA fallback is handled automatically — no extra configuration needed.
 The **Location** card appears at the top of the page and controls all calculations across every tab.
 
 **City search**
-Type any city name or country into the search box. A dropdown shows up to 12 matching cities with their coordinates. Use the arrow keys and Enter to pick a result, or click it. 100 major cities are included with pre-configured IANA timezones — no network lookup needed.
+Type any city name or country into the search box. A dropdown shows up to 12 matching cities with their coordinates. Use the arrow keys and Enter to pick a result, or click it. 28 cities are included with pre-configured IANA timezones — no network lookup needed.
 
 **Manual latitude / longitude**
-Enter a latitude (−90 to +90) and longitude (−180 to +180) in decimal degrees and press **Go**. The timezone is resolved automatically from the coordinates using a bundled offline lookup table.
+Enter a latitude (−90 to +90) and longitude (−180 to +180) in decimal degrees and press **Go**. Times for manual coordinates are shown in **UTC**. Pick a bundled city (or a favourite saved from one) for a local IANA timezone.
 
 **Favourites**
 - Click **☆ Save as Favourite** next to the current location to open the name form. The field is pre-filled with the location name — edit it to anything you like, then press **Save ★** or hit Enter.
@@ -336,7 +336,7 @@ The four key points in the solar year. At the **equinoxes** (≈ 20 March and 23
 |---|---|
 | Framework | React 18 + Vite 5 + TypeScript |
 | Celestial calculations | [astronomy-engine](https://github.com/cosinekitty/astronomy) — all sun/moon position, rise/set, phase, and illumination computed entirely on-device |
-| Timezone resolution | [tz-lookup](https://github.com/darkskyapp/tz-lookup) — offline IANA timezone lookup from coordinates; no network call required |
+| Timezone | Bundled with each city; last location and favourites store the IANA id; manual lat/lng uses UTC |
 | PWA | Vite PWA plugin with service worker; installable on desktop and mobile |
 | Clock | React state updated every 30 seconds; header and tables use the location IANA timezone (civil midnight, including 23h/25h DST days) |
 | Storage | Browser `localStorage` only — favourites and last location as JSON; invalid entries are dropped; nothing is sent to any server |

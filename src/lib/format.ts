@@ -1,22 +1,5 @@
 import { safeTimeZone } from './timezone'
 
-/** Format a Date to local time string: YYYY-MM-DD HH:mm:ss */
-export function formatDateTime(date: Date, timezone: string): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: safeTimeZone(timezone),
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  })
-    .format(date)
-    .replace(',', '')
-    .replace(/\//g, '-')
-}
-
 /** Date and time without seconds — for the header clock (ticks every 30s). */
 export function formatClock(date: Date, timezone: string): string {
   return new Intl.DateTimeFormat('en-CA', {
@@ -81,9 +64,4 @@ export function round(n: number, dp = 1): number {
   if (!Number.isFinite(n)) return n
   const m = Math.pow(10, dp)
   return Math.round(n * m) / m
-}
-
-/** Midpoint between two Date objects */
-export function midpoint(a: Date, b: Date): Date {
-  return new Date((a.getTime() + b.getTime()) / 2)
 }
