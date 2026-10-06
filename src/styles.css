@@ -1,6 +1,31 @@
 /* ─── Reset & base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html { color-scheme: dark; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.error-boundary {
+  max-width: 480px;
+  margin: 3rem auto;
+  padding: 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
 :root {
   --bg:          #0f172a;
   --surface:     #1e293b;
@@ -76,6 +101,12 @@ html, body {
   font-size: 0.72rem;
   color: var(--fg-sub);
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* ─── Cards ─────────────────────────────────────────────────── */
@@ -235,7 +266,7 @@ html, body {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 0.25rem 0.75rem;
+  padding: 0.4rem 0.85rem;
   font-size: 0.8rem;
   color: var(--fg);
   cursor: pointer;
@@ -257,6 +288,17 @@ html, body {
   transition: border-color 0.15s;
 }
 .text-input:focus { border-color: var(--accent); }
+.text-input:focus-visible,
+.btn-primary:focus-visible,
+.btn-fav:focus-visible,
+.btn-save:focus-visible,
+.btn-remove:focus-visible,
+.btn-cancel:focus-visible,
+.fav-chip:focus-visible,
+.tab-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .text-input::placeholder { color: var(--fg-sub); }
 
 .dropdown {
@@ -283,7 +325,8 @@ html, body {
   color: var(--fg);
   gap: 0.5rem;
 }
-.dropdown li:hover { background: var(--border); }
+.dropdown li:hover,
+.dropdown li.highlighted { background: var(--border); }
 .coords-hint { font-size: 0.72rem; color: var(--fg-sub); white-space: nowrap; }
 
 .latlng-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -316,7 +359,7 @@ html, body {
 .tab-btn {
   flex: 1;
   background: none;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 7px;
   padding: 0.55rem 0.5rem;
   font-size: 0.9rem;
@@ -326,7 +369,8 @@ html, body {
   transition: background 0.15s, color 0.15s;
 }
 .tab-btn:hover { background: var(--surface2); color: var(--fg); }
-.tab-btn.active { background: var(--surface2); color: var(--fg); border: 1px solid var(--border); }
+.tab-btn.active { background: var(--surface2); color: var(--fg); border-color: var(--border); }
+.tab-btn[aria-selected="true"] { background: var(--surface2); color: var(--fg); border-color: var(--border); }
 
 .tab-content { flex: 1; }
 
@@ -503,8 +547,14 @@ td.sunset   { color: var(--setc); }
 /* ─── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 500px) {
   .header-title h1 { font-size: 1rem; }
-  .header-time { display: none; }
+  .header-time { font-size: 0.68rem; }
   .app-main { padding: 0.75rem; }
   .solar-value { font-size: 1.3rem; }
   .pos-value   { font-size: 1.2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+  }
 }

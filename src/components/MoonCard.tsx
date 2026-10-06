@@ -7,6 +7,7 @@ import {
   getMoonPhaseName,
 } from '../lib/astronomy'
 import { formatTime, formatDate, formatDayLabel, azimuthToCardinal, round } from '../lib/format'
+import { civilDateKey } from '../lib/timezone'
 import type { Location } from '../lib/favorites'
 import { CompassRose, ElevationArc } from './Instruments'
 
@@ -24,13 +25,13 @@ export function MoonCard({ location, now }: Props) {
   const phaseName = useMemo(() => getMoonPhaseName(now), [now])
 
   const week = useMemo(
-    () => getMoonWeek(location.lat, location.lng, 7),
-    [location]
+    () => getMoonWeek(location.lat, location.lng, location.timezone, now, 7),
+    [location.lat, location.lng, location.timezone, civilDateKey(now, location.timezone)]
   )
 
-  const fullMoons = useMemo(() => getFullMoons(6), [])
+  const fullMoons = useMemo(() => getFullMoons(6, now), [civilDateKey(now, location.timezone)])
 
-  const aboveHorizon = pos.altitude > 0
+  const aboveHorizon = pos.altitude >= 0
 
   return (
     <div className="card">
@@ -83,7 +84,7 @@ export function MoonCard({ location, now }: Props) {
           </thead>
           <tbody>
             {week.map((row, i) => (
-              <tr key={i} className={i === 0 ? 'today-row' : ''}>
+              <tr key={row.date.toISOString()} className={i === 0 ? 'today-row' : ''}>
                 <td>{formatDayLabel(row.date, location.timezone)}</td>
                 <td className="sunrise">{row.rise ? formatTime(row.rise, location.timezone) : '—'}</td>
                 <td className="midpoint">{row.midpoint ? formatTime(row.midpoint, location.timezone) : '—'}</td>
@@ -97,8 +98,8 @@ export function MoonCard({ location, now }: Props) {
       {/* Full moons */}
       <h3 className="section-title">Full Moons — Next 6 Months</h3>
       <div className="full-moon-list">
-        {fullMoons.map((fm, i) => (
-          <div key={i} className="full-moon-item">
+        {fullMoons.map(fm => (
+          <div key={fm.date.toISOString()} className="full-moon-item">
             <span className="full-moon-icon">🌕</span>
             <span className="full-moon-date">{formatDate(fm.date, location.timezone)}</span>
             <span className="full-moon-time">{formatTime(fm.date, location.timezone)}</span>

@@ -1,47 +1,47 @@
 import { useMemo } from 'react'
-import { calcSolar, calcMonthlyTilts } from '../lib/solar'
+import { calcSolar, calcMonthlyTilts, dayOfYearFromYmd } from '../lib/solar'
 import type { Location } from '../lib/favorites'
+import { getZonedParts } from '../lib/timezone'
 
 interface Props {
   location: Location
+  now: Date
 }
 
-export function SolarCard({ location }: Props) {
-  const rec          = useMemo(() => calcSolar(location.lat), [location.lat])
+export function SolarCard({ location, now }: Props) {
+  const parts = getZonedParts(now, location.timezone)
+  const doy = dayOfYearFromYmd(parts.year, parts.month, parts.day)
+  const rec = useMemo(() => calcSolar(location.lat, doy), [location.lat, doy])
   const monthlyTilts = useMemo(() => calcMonthlyTilts(location.lat), [location.lat])
-  const currentMonth = new Date().getMonth() // 0-indexed
+  const currentMonth = parts.month - 1
 
   return (
     <div className="card">
-      <h2 className="card-title">⚡ Solar Panel</h2>
+      <h2 className="card-title"><span aria-hidden="true">⚡</span> Solar Panel</h2>
       <p className="solar-intro">
         Optimal orientation for <strong>{location.name}</strong>
         &nbsp;({rec.hemisphere} Hemisphere)
       </p>
 
       <div className="solar-grid">
-        {/* Direction */}
         <div className="solar-item highlight">
           <span className="solar-label">Face Direction</span>
           <span className="solar-value">{rec.direction}</span>
-          <span className="solar-sub">{rec.directionDeg}° from North</span>
+          <span className="solar-sub">{rec.directionDeg}° from North (today)</span>
         </div>
 
-        {/* Summer */}
         <div className="solar-item summer">
           <span className="solar-label">☀️ Summer Tilt</span>
           <span className="solar-value">{rec.summerAngle}°</span>
           <span className="solar-sub">from horizontal</span>
         </div>
 
-        {/* Annual average */}
         <div className="solar-item average">
           <span className="solar-label">📅 Year-Round Tilt</span>
           <span className="solar-value">{rec.averageAngle}°</span>
           <span className="solar-sub">from horizontal</span>
         </div>
 
-        {/* Winter */}
         <div className="solar-item winter">
           <span className="solar-label">❄️ Winter Tilt</span>
           <span className="solar-value">{rec.winterAngle}°</span>
@@ -49,12 +49,14 @@ export function SolarCard({ location }: Props) {
         </div>
       </div>
 
-      {/* Visual angle diagram */}
       <AngleDiagram summerAngle={rec.summerAngle} winterAngle={rec.winterAngle} averageAngle={rec.averageAngle} />
 
       <div className="solar-notes">
         <p>
-          <strong>Direction:</strong> Face your panel {rec.direction} — towards the equator.
+          <strong>Direction:</strong> Face your panel {rec.direction}
+          {rec.facesEquator
+            ? ' — towards the equator.'
+            : ' — towards the noon sun (poleward of the equator while the sun is overhead on the other side).'}
         </p>
         <p>
           <strong>Summer:</strong> Lower angle ({rec.summerAngle}°) — sun is high in the sky.
@@ -74,6 +76,7 @@ export function SolarCard({ location }: Props) {
             <tr>
               <th>Month</th>
               <th>Declination</th>
+              <th>Face</th>
               <th>Optimal Tilt</th>
             </tr>
           </thead>
@@ -82,6 +85,7 @@ export function SolarCard({ location }: Props) {
               <tr key={row.month} className={i === currentMonth ? 'today-row' : ''}>
                 <td>{row.month}</td>
                 <td>{row.declination > 0 ? '+' : ''}{row.declination}°</td>
+                <td>{row.direction}</td>
                 <td className="solar-tilt-cell">{row.tilt}°</td>
               </tr>
             ))}
@@ -101,22 +105,16 @@ function AngleDiagram({
   winterAngle: number
   averageAngle: number
 }) {
-  // Dimensions chosen so lines stay in-viewport for all latitudes (up to ~75° winter tilt)
   const w        = 300
   const h        = 150
   const originX  = 20
-  const originY  = 130   // ground line y — pushed down to give headroom above
-  const len      = 110   // shorter arms so steep angles don't escape the viewport
+  const originY  = 130
+  const len      = 110
 
-  /**
-   * Draw a line from the origin at `angleDeg` FROM HORIZONTAL.
-   * 0° = flat along ground, 90° = pointing straight up.
-   * rad = angleDeg directly (NOT 90-angleDeg which was the previous bug).
-   */
   function polarLine(angleDeg: number, color: string, label: string, dasharray?: string) {
-    const rad = (angleDeg * Math.PI) / 180          // angle from horizontal
+    const rad = (angleDeg * Math.PI) / 180
     const ex  = originX + len * Math.cos(rad)
-    const ey  = originY - len * Math.sin(rad)       // SVG y goes down, so subtract
+    const ey  = originY - len * Math.sin(rad)
     const lx  = originX + (len + 18) * Math.cos(rad)
     const ly  = originY - (len + 18) * Math.sin(rad)
     return (
@@ -134,8 +132,6 @@ function AngleDiagram({
     )
   }
 
-  // Arc connecting the winter and summer lines at a fixed radius from origin.
-  // Both angles now measured correctly from horizontal.
   const arcR    = 38
   const arcStart = (winterAngle  * Math.PI) / 180
   const arcEnd   = (summerAngle  * Math.PI) / 180
@@ -146,17 +142,21 @@ function AngleDiagram({
   const largeArc = Math.abs(winterAngle - summerAngle) > 180 ? 1 : 0
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="angle-diagram">
-      {/* Ground / horizon line */}
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      className="angle-diagram"
+      role="img"
+      aria-label={`Panel tilt diagram: summer ${summerAngle} degrees, year-round ${averageAngle} degrees, winter ${winterAngle} degrees from horizontal`}
+    >
       <line x1={originX - 4} y1={originY} x2={w - 10} y2={originY}
         stroke="#334155" strokeWidth="1.5" />
-      {/* "Horizontal" label at ground line */}
-      <text x={w - 12} y={originY - 4} fontSize="8" fill="#475569"
+      <text x={w - 12} y={originY - 4} fontSize="8" fill="#94a3b8"
         textAnchor="end" dominantBaseline="auto">horizontal</text>
-      {/* Arc sweep between winter and summer */}
       <path
         d={`M ${ax1} ${ay1} A ${arcR} ${arcR} 0 ${largeArc} 1 ${ax2} ${ay2}`}
-        fill="none" stroke="#475569" strokeWidth="1" strokeDasharray="3,2"
+        fill="none" stroke="#64748b" strokeWidth="1" strokeDasharray="3,2"
       />
       {polarLine(winterAngle, '#93c5fd', `${winterAngle}° W`, '6,3')}
       {polarLine(averageAngle, '#86efac', `${averageAngle}° Avg`)}

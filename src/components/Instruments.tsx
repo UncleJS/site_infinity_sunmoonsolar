@@ -26,7 +26,7 @@ export function CompassRose({ azimuth, color }: CompassProps) {
   })
 
   return (
-    <svg width="120" height="120" viewBox="0 0 120 120">
+    <svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label={`Compass, azimuth ${Math.round(azimuth)} degrees`}>
       {/* Outer ring */}
       <circle cx={cx} cy={cy} r={r + 4}
         fill="none" stroke="#f8fafc" strokeWidth="1.5" strokeOpacity="0.4" />
@@ -115,7 +115,7 @@ export function ElevationArc({ altitude, color }: ElevationProps) {
   const negY = cy - r * Math.sin(negRad)
 
   return (
-    <svg width="145" height="113" viewBox="0 0 145 113">
+    <svg width="145" height="113" viewBox="0 0 145 113" role="img" aria-label={`Elevation ${Math.round(altitude)} degrees`}>
       {/* Below-horizon dashed arc */}
       <path
         d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 1 ${negX} ${negY}`}

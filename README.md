@@ -33,9 +33,9 @@ A fully offline Progressive Web App (PWA) for sun position, moon phase, and sola
 - **☀️ Sun** — live azimuth and elevation with compass rose and elevation arc instruments; 7-day sunrise, solar midpoint, and sunset table
 - **🌕 Moon** — live azimuth, elevation, phase name, and illumination percentage; 7-day moonrise/midpoint/moonset table; next 6 full moon dates
 - **⚡ Solar** — optimal solar panel face direction, summer/winter/year-round tilt angles, visual angle diagram, and a 12-month optimal tilt table based on solar declination
-- **📍 Location** — search 130+ cities by name or country; enter any latitude/longitude manually; save, rename, and remove named favourites (persisted in `localStorage`)
-- Fully offline after first load — installable as a PWA on desktop and mobile
-- Clock updates every 30 seconds; all times displayed in the location's local timezone
+- **📍 Location** — search 100 bundled cities by name or country; enter any latitude/longitude manually; save, rename, and remove named favourites (persisted in `localStorage`)
+- Fully offline after first load — installable as a PWA on desktop and mobile (192/512 PNG icons plus a padded maskable icon)
+- Clock updates every 30 seconds in the **selected location's** timezone (hours and minutes, no frozen seconds)
 
 [↑ Back to contents](#toc)
 
@@ -110,9 +110,9 @@ rsync -av dist/ user@yourserver:/var/www/html/
 
 `dist/` contains the compiled HTML, JS bundles, CSS, service worker, PWA manifest, and icons — everything needed to run the app offline after the first load.
 
-### 3. Configure your web server for SPA routing
+### 3. Configure your web server for deep links (optional)
 
-Because the app uses client-side routing, your web server must serve `index.html` for any path that does not match a real file. Without this, direct URL access and page refreshes will return 404 errors.
+The app is a single page (`index.html`) with no client-side routes. A fallback to `index.html` is still useful for the service worker's navigation fallback and for any unknown path:
 
 **nginx**
 
@@ -146,7 +146,7 @@ SPA fallback is handled automatically — no extra configuration needed.
 The **Location** card appears at the top of the page and controls all calculations across every tab.
 
 **City search**
-Type any city name or country into the search box. A dropdown shows up to 12 matching cities with their coordinates. Click a result to select it. Over 130 major cities are included with pre-configured IANA timezones — no network lookup needed.
+Type any city name or country into the search box. A dropdown shows up to 12 matching cities with their coordinates. Use the arrow keys and Enter to pick a result, or click it. 100 major cities are included with pre-configured IANA timezones — no network lookup needed.
 
 **Manual latitude / longitude**
 Enter a latitude (−90 to +90) and longitude (−180 to +180) in decimal degrees and press **Go**. The timezone is resolved automatically from the coordinates using a bundled offline lookup table.
@@ -196,22 +196,22 @@ The compass rose and elevation arc work identically to the Sun tab. The moon's i
 **Phase and illumination**
 
 - **Illumination** — the percentage of the moon's visible face currently lit by the sun. Ranges from 0% (new moon) to 100% (full moon).
-- **Phase name** — one of the eight standard phases based on the moon's ecliptic longitude:
+- **Phase name** — one of eight names from ~45° sectors of ecliptic longitude, centred on the named phases:
 
-| Phase | Ecliptic longitude | Description |
+| Phase | Ecliptic longitude (sector centre) | Description |
 |---|---|---|
-| New Moon | 0° | Moon is between Earth and Sun; dark side faces Earth |
-| Waxing Crescent | 0°–90° | A growing sliver visible in the western evening sky |
-| First Quarter | 90° | Right half illuminated (Northern hemisphere); rising at noon, setting at midnight |
-| Waxing Gibbous | 90°–180° | More than half lit and growing towards full |
-| Full Moon | 180° | Moon is opposite the Sun; fully illuminated |
-| Waning Gibbous | 180°–270° | More than half lit and shrinking |
-| Last Quarter | 270° | Left half illuminated; rising at midnight, setting at noon |
-| Waning Crescent | 270°–360° | A shrinking sliver visible in the eastern morning sky |
+| New Moon | 0° (±22.5°) | Moon is between Earth and Sun; dark side faces Earth |
+| Waxing Crescent | 45° | A growing sliver visible in the western evening sky |
+| First Quarter | 90° (±22.5°) | Right half illuminated (Northern hemisphere); rising at noon, setting at midnight |
+| Waxing Gibbous | 135° | More than half lit and growing towards full |
+| Full Moon | 180° (±22.5°) | Moon is opposite the Sun; fully illuminated |
+| Waning Gibbous | 225° | More than half lit and shrinking |
+| Last Quarter | 270° (±22.5°) | Left half illuminated; rising at midnight, setting at noon |
+| Waning Crescent | 315° | A shrinking sliver visible in the eastern morning sky |
 
 **7-day table** — moonrise, midpoint, and moonset per day. Dashes appear when there is no rise or set on a given day (the moon can skip a day, unlike the sun).
 
-**Full moon list** — the exact date and local time of the next six full moons for the selected location.
+**Full moon list** — the date and local time of full moons in the next six months for the selected location.
 
 [↑ Back to contents](#toc)
 
@@ -221,12 +221,13 @@ The compass rose and elevation arc work identically to the Sun tab. The moon's i
 
 Provides solar panel orientation guidance for the selected location based on its latitude and hemisphere.
 
-**Face direction**
+**Face direction (today)**
 
-Solar panels should always face the equator to maximise exposure to the sun's arc across the sky:
-- **Northern hemisphere** (latitude > 5°) → face **South**
-- **Southern hemisphere** (latitude < −5°) → face **North**
-- **Equatorial zone** (−5° to +5°) → face South if north of equator, North if south
+At solar noon the panel should face the sun. That is towards the equator when `|latitude| > |declination|`. Near the equator, for part of the year the noon sun is on the **poleward** side of zenith, so the monthly table (and today's face direction) switch between North and South.
+
+- **Northern hemisphere** (latitude > 5°) — usually face **South**
+- **Southern hemisphere** (latitude < −5°) — usually face **North**
+- **Tropics** — follow the monthly Face column; June at ~1°N (e.g. Singapore) faces **North**
 
 **Tilt angles**
 
@@ -257,6 +258,7 @@ Shows the theoretically optimal tilt angle for the 1st of each month, calculated
 |---|---|
 | Month | Name of the month (1st of that month used for calculation) |
 | Declination | The sun's angular position north (+) or south (−) of the celestial equator on that date, in degrees |
+| Face | North or South at solar noon that month |
 | Optimal Tilt | The ideal panel tilt angle from horizontal for maximum perpendicular exposure on that date |
 
 [↑ Back to contents](#toc)
@@ -275,9 +277,9 @@ This app calculates solar declination using the standard approximation formula:
 δ = 23.45 × sin( (2π / 365) × (284 + N) )
 ```
 
-where **N** is the day of the year (1 = 1 January, 365 = 31 December) and **δ** is the declination in degrees. The constant 284 shifts the sine wave so that it peaks near day 172 (21 June) and troughs near day 355 (21 December), matching observed solar behaviour to within about 0.3° — more than sufficient for practical panel-tilt purposes.
+where **N** is the day of the year (1 = 1 January, 365 = 31 December) and **δ** is the declination in degrees. The constant 284 shifts the sine wave so that it peaks near day 172 (21 June) and troughs near day 355 (21 December). This is a practical rule of thumb (typically within about 1° of a full VSOP model) — more than sufficient for panel-tilt purposes.
 
-The declination directly determines the optimal tilt for a solar panel on any given day. Because the sun's noon elevation angle at a given latitude is `90° − |latitude − δ|`, the angle at which a panel must be tilted from horizontal to face the sun perpendicularly at solar noon is simply `|latitude − δ|`. This is the value shown in the Monthly Optimal Tilt table. For a location at 51.5°N (London) the optimal tilt ranges from about 28° in mid-summer (sun high, shallow tilt) to around 75° in mid-winter (sun low, steep tilt) — a swing of nearly 47° across the year. For locations close to the equator the range is much smaller because the declination swing of ±23.45° represents a proportionally larger share of the total sun angle.
+The declination directly determines the optimal tilt for a solar panel on any given day. Because the sun's noon elevation angle at a given latitude is `90° − |latitude − δ|`, the angle at which a panel must be tilted from horizontal to face the sun perpendicularly at solar noon is simply `|latitude − δ|`. Facing is **South** when `latitude > δ` and **North** when `latitude < δ`. This is the value shown in the Monthly Optimal Tilt table.
 
 [↑ Back to contents](#toc)
 
@@ -301,7 +303,7 @@ The projection of Earth's equator onto the celestial sphere. The sun crosses it 
 The moon's angular position along the ecliptic (the plane of Earth's orbit), measured from 0° to 360°. It is used to determine moon phase: 0° = new moon, 90° = first quarter, 180° = full moon, 270° = last quarter.
 
 **Hemisphere classification**
-This app classifies locations as Northern (latitude > 5°), Southern (latitude < −5°), or Equatorial (within 5° of the equator). The classification determines which direction a solar panel should face.
+This app classifies locations as Northern (latitude > 5°), Southern (latitude < −5°), or Equatorial (within 5° of the equator). Panel facing at solar noon still follows `sign(latitude − declination)`, which can flip in the tropics.
 
 **Illumination**
 The percentage of the moon's visible face currently lit by reflected sunlight. 0% at new moon, 100% at full moon. Note that illumination alone does not tell you whether the moon is waxing or waning — the phase name provides that context.
@@ -310,7 +312,7 @@ The percentage of the moon's visible face currently lit by reflected sunlight. 0
 The moment the body crosses the observer's meridian and reaches its highest elevation for that passage — the true upper transit. For the sun this is true solar noon; for the moon it is the culmination. This is computed directly from the astronomy engine, not as an arithmetic average of rise and set times. Shows — if no transit occurs within that calendar day (possible for the moon at high latitudes or when the moon's arc straddles midnight).
 
 **Optimal tilt**
-The angle from horizontal at which a solar panel should be tilted to receive sunlight perpendicularly at solar noon. Calculated as `|latitude − solar declination|` for a panel facing the equator. Ranges from close to 0° (equatorial summer) to around 75°–80° (high-latitude winter).
+The angle from horizontal at which a solar panel should be tilted to receive sunlight perpendicularly at solar noon. Calculated as `|latitude − solar declination|` for a panel facing the noon sun (South if latitude > δ, North if latitude < δ).
 
 **Solar declination**
 The angle of the sun north (+) or south (−) of the celestial equator on a given day, ranging from −23.45° at the December solstice to +23.45° at the June solstice. See *Solar Declination Explained* above for full details.
@@ -336,8 +338,9 @@ The four key points in the solar year. At the **equinoxes** (≈ 20 March and 23
 | Celestial calculations | [astronomy-engine](https://github.com/cosinekitty/astronomy) — all sun/moon position, rise/set, phase, and illumination computed entirely on-device |
 | Timezone resolution | [tz-lookup](https://github.com/darkskyapp/tz-lookup) — offline IANA timezone lookup from coordinates; no network call required |
 | PWA | Vite PWA plugin with service worker; installable on desktop and mobile |
-| Clock | React state updated every 30 seconds; all instruments and position data re-render automatically |
-| Storage | Browser `localStorage` only — favourites are stored as JSON; nothing is sent to any server |
+| Clock | React state updated every 30 seconds; header and tables use the location IANA timezone (civil midnight, including 23h/25h DST days) |
+| Storage | Browser `localStorage` only — favourites and last location as JSON; invalid entries are dropped; nothing is sent to any server |
+| Tests | `npm test` / `bun run test` (Vitest) — timezone civil days, tropical facing, favourites schema |
 | Default location | London, UK (51.5074°N, 0.1278°W, `Europe/London`) |
 | Container | Rootless Podman; Bun runtime inside container; host requires only Podman and a POSIX shell |
 | Offline | Fully functional without network after initial load; no external fonts, no CDN resources, no analytics |
@@ -350,7 +353,7 @@ The four key points in the solar year. At the **equinoxes** (≈ 20 March and 23
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-**Sun Moon Solar** © 2025
+**Sun Moon Solar** © 2026
 
 This project is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 

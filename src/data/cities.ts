@@ -159,9 +159,9 @@ export const CITIES: City[] = [
   { name: 'Suva', country: 'Fiji', lat: -18.1416, lng: 178.4419, timezone: 'Pacific/Fiji' },
 ]
 
-export function searchCities(query: string): City[] {
+export function searchCities(query: string, limit = 20): City[] {
   const q = query.toLowerCase()
   return CITIES.filter(
     c => c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q)
-  ).slice(0, 20)
+  ).slice(0, limit)
 }

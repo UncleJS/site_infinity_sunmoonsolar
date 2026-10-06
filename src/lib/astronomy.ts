@@ -1,4 +1,5 @@
 import * as Astronomy from 'astronomy-engine'
+import { civilDayBounds, safeTimeZone } from './timezone'
 
 export interface RiseSetRow {
   date: Date
@@ -17,31 +18,30 @@ export interface MoonPhaseEvent {
   name: string
 }
 
-// ─── helpers ────────────────────────────────────────────────────────────────
-
 function toObserver(lat: number, lng: number): Astronomy.Observer {
   return new Astronomy.Observer(lat, lng, 0)
 }
 
-function startOfDay(base: Date, offsetDays: number): Date {
-  const d = new Date(base)
-  d.setDate(d.getDate() + offsetDays)
-  d.setHours(0, 0, 0, 0)
-  return d
+function inWindow(event: Date, start: Date, end: Date): boolean {
+  return event >= start && event < end
+}
+
+function searchLimitDays(start: Date, end: Date): number {
+  const ms = end.getTime() - start.getTime()
+  // Cover 23h–25h civil days plus a small rounding margin.
+  return Math.max(ms / 86_400_000, 1) + 0.15
 }
 
 function tryRise(
   body: Astronomy.Body,
   observer: Astronomy.Observer,
-  date: Date
+  start: Date,
+  end: Date,
 ): Date | null {
   try {
-    const r = Astronomy.SearchRiseSet(body, observer, +1, date, 1)
+    const r = Astronomy.SearchRiseSet(body, observer, +1, start, searchLimitDays(start, end))
     if (!r) return null
-    // Ensure the event is within the same calendar day (UTC)
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    if (r.date < date || r.date >= next) return null
+    if (!inWindow(r.date, start, end)) return null
     return r.date
   } catch {
     return null
@@ -51,14 +51,13 @@ function tryRise(
 function trySet(
   body: Astronomy.Body,
   observer: Astronomy.Observer,
-  date: Date
+  start: Date,
+  end: Date,
 ): Date | null {
   try {
-    const s = Astronomy.SearchRiseSet(body, observer, -1, date, 1)
+    const s = Astronomy.SearchRiseSet(body, observer, -1, start, searchLimitDays(start, end))
     if (!s) return null
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
-    if (s.date < date || s.date >= next) return null
+    if (!inWindow(s.date, start, end)) return null
     return s.date
   } catch {
     return null
@@ -68,40 +67,57 @@ function trySet(
 function tryTransit(
   body: Astronomy.Body,
   observer: Astronomy.Observer,
-  date: Date
+  start: Date,
+  end: Date,
 ): Date | null {
   try {
-    const startTime = Astronomy.MakeTime(date)
+    const startTime = Astronomy.MakeTime(start)
     const result = Astronomy.SearchHourAngle(body, observer, 0, startTime)
     if (!result) return null
-    const next = new Date(date)
-    next.setDate(next.getDate() + 1)
     const t = result.time.date
-    if (t < date || t >= next) return null
+    if (!inWindow(t, start, end)) return null
     return t
   } catch {
     return null
   }
 }
 
-// ─── Sun ────────────────────────────────────────────────────────────────────
-
-/**
- * Sunrise / sunset / midpoint for the next `days` calendar days (UTC-based).
- */
-export function getSunWeek(lat: number, lng: number, days = 7): RiseSetRow[] {
+function weekForBody(
+  body: Astronomy.Body,
+  lat: number,
+  lng: number,
+  timezone: string,
+  when: Date,
+  days: number,
+): RiseSetRow[] {
   const observer = toObserver(lat, lng)
+  const tz = safeTimeZone(timezone)
   const rows: RiseSetRow[] = []
-  const now = new Date()
 
   for (let i = 0; i < days; i++) {
-    const date = startOfDay(now, i)
-    const rise = tryRise(Astronomy.Body.Sun, observer, date)
-    const set = trySet(Astronomy.Body.Sun, observer, date)
-    const mid = tryTransit(Astronomy.Body.Sun, observer, date)
-    rows.push({ date, rise, set, midpoint: mid })
+    const { start, end } = civilDayBounds(when, tz, i)
+    rows.push({
+      date: start,
+      rise: tryRise(body, observer, start, end),
+      set: trySet(body, observer, start, end),
+      midpoint: tryTransit(body, observer, start, end),
+    })
   }
   return rows
+}
+
+/**
+ * Sunrise / sunset / meridian transit for the next `days` civil days
+ * in `timezone` (not the device clock).
+ */
+export function getSunWeek(
+  lat: number,
+  lng: number,
+  timezone: string,
+  when: Date = new Date(),
+  days = 7,
+): RiseSetRow[] {
+  return weekForBody(Astronomy.Body.Sun, lat, lng, timezone, when, days)
 }
 
 /** Current sun azimuth and altitude */
@@ -113,22 +129,15 @@ export function getSunPosition(lat: number, lng: number, when?: Date): BodyPosit
   return { azimuth: hor.azimuth, altitude: hor.altitude }
 }
 
-// ─── Moon ───────────────────────────────────────────────────────────────────
-
-/** Moonrise / moonset / midpoint for the next `days` calendar days */
-export function getMoonWeek(lat: number, lng: number, days = 7): RiseSetRow[] {
-  const observer = toObserver(lat, lng)
-  const rows: RiseSetRow[] = []
-  const now = new Date()
-
-  for (let i = 0; i < days; i++) {
-    const date = startOfDay(now, i)
-    const rise = tryRise(Astronomy.Body.Moon, observer, date)
-    const set = trySet(Astronomy.Body.Moon, observer, date)
-    const mid = tryTransit(Astronomy.Body.Moon, observer, date)
-    rows.push({ date, rise, set, midpoint: mid })
-  }
-  return rows
+/** Moonrise / moonset / transit for the next `days` civil days in `timezone`. */
+export function getMoonWeek(
+  lat: number,
+  lng: number,
+  timezone: string,
+  when: Date = new Date(),
+  days = 7,
+): RiseSetRow[] {
+  return weekForBody(Astronomy.Body.Moon, lat, lng, timezone, when, days)
 }
 
 /** Current moon azimuth and altitude */
@@ -140,11 +149,11 @@ export function getMoonPosition(lat: number, lng: number, when?: Date): BodyPosi
   return { azimuth: hor.azimuth, altitude: hor.altitude }
 }
 
-/** Full-moon dates for the next `months` months */
-export function getFullMoons(months = 6): MoonPhaseEvent[] {
+/** Full-moon dates for the next `months` months from `when`. */
+export function getFullMoons(months = 6, when: Date = new Date()): MoonPhaseEvent[] {
   const events: MoonPhaseEvent[] = []
-  let search = new Date()
-  const end = new Date()
+  let search = new Date(when)
+  const end = new Date(when)
   end.setMonth(end.getMonth() + months)
 
   while (search < end) {
@@ -152,7 +161,6 @@ export function getFullMoons(months = 6): MoonPhaseEvent[] {
       const phase = Astronomy.SearchMoonPhase(180, search, 40)
       if (!phase || phase.date >= end) break
       events.push({ date: phase.date, name: 'Full Moon' })
-      // Advance past this event to find the next
       search = new Date(phase.date.getTime() + 24 * 60 * 60 * 1000)
     } catch {
       break
@@ -168,11 +176,13 @@ export function getMoonIllumination(when?: Date): number {
   return Math.round(illum.phase_fraction * 100)
 }
 
-/** Moon phase name from angle */
+/**
+ * Moon phase name from ecliptic longitude, binned into eight ~45° sectors
+ * centred on the named phases (New 0°, First Quarter 90°, Full 180°, Last Quarter 270°).
+ */
 export function getMoonPhaseName(when?: Date): string {
   const t = when ? Astronomy.MakeTime(when) : Astronomy.MakeTime(new Date())
-  // Use MoonPhase to get ecliptic longitude angle (0–360)
-  const moonPhase = Astronomy.MoonPhase(t) // 0=New, 90=FQ, 180=Full, 270=LQ
+  const moonPhase = Astronomy.MoonPhase(t)
 
   if (moonPhase < 22.5 || moonPhase >= 337.5) return 'New Moon'
   if (moonPhase < 67.5) return 'Waxing Crescent'

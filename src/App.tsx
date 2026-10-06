@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type KeyboardEvent } from 'react'
 import { LocationPanel } from './components/LocationPanel'
 import { SunCard } from './components/SunCard'
 import { MoonCard } from './components/MoonCard'
 import { SolarCard } from './components/SolarCard'
 import type { Location } from './lib/favorites'
+import { loadLastLocation, saveLastLocation } from './lib/favorites'
+import { formatClock } from './lib/format'
 
 const DEFAULT_LOCATION: Location = {
   name: 'London, UK',
@@ -12,74 +14,113 @@ const DEFAULT_LOCATION: Location = {
   timezone: 'Europe/London',
 }
 
+const TABS = [
+  { id: 'sun' as const, label: 'Sun', icon: '☀️' },
+  { id: 'moon' as const, label: 'Moon', icon: '🌕' },
+  { id: 'solar' as const, label: 'Solar', icon: '⚡' },
+]
+
 export default function App() {
-  const [location, setLocation] = useState<Location>(DEFAULT_LOCATION)
+  const [location, setLocation] = useState<Location>(() => loadLastLocation() ?? DEFAULT_LOCATION)
   const [now, setNow] = useState(new Date())
   const [activeTab, setActiveTab] = useState<'sun' | 'moon' | 'solar'>('sun')
 
-  // Tick clock every 30 seconds
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
     return () => clearInterval(id)
   }, [])
 
+  function handleLocationChange(loc: Location) {
+    setLocation(loc)
+    saveLastLocation(loc)
+  }
+
+  function onTabKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    const ids = TABS.map(t => t.id)
+    const i = ids.indexOf(activeTab)
+    let next: typeof activeTab | undefined
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      next = ids[(i + 1) % ids.length]
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      next = ids[(i - 1 + ids.length) % ids.length]
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      next = ids[0]
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      next = ids[ids.length - 1]
+    }
+    if (next) {
+      setActiveTab(next)
+      requestAnimationFrame(() => document.getElementById(`tab-${next}`)?.focus())
+    }
+  }
+
   return (
     <div className="app">
-      {/* Header */}
       <header className="app-header">
         <div className="header-inner">
           <div className="header-title">
-            <span className="header-icon">🌞🌕⚡</span>
+            <span className="header-icon" aria-hidden="true">🌞🌕⚡</span>
             <h1>Sun Moon Solar</h1>
           </div>
-          <div className="header-time">
-            {now.toLocaleString('en-CA', {
-              year: 'numeric', month: '2-digit', day: '2-digit',
-              hour: '2-digit', minute: '2-digit', second: '2-digit',
-              hour12: false,
-            }).replace(',', '')}
-          </div>
+          <time className="header-time" dateTime={now.toISOString()}>
+            {formatClock(now, location.timezone)}
+          </time>
         </div>
       </header>
 
       <main className="app-main">
-        {/* Location */}
-        <LocationPanel location={location} onLocationChange={setLocation} />
+        <LocationPanel location={location} onLocationChange={handleLocationChange} />
 
-        {/* Tab selector */}
-        <div className="tab-bar">
-          <button
-            className={`tab-btn ${activeTab === 'sun' ? 'active' : ''}`}
-            onClick={() => setActiveTab('sun')}
-          >
-            ☀️ Sun
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'moon' ? 'active' : ''}`}
-            onClick={() => setActiveTab('moon')}
-          >
-            🌕 Moon
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'solar' ? 'active' : ''}`}
-            onClick={() => setActiveTab('solar')}
-          >
-            ⚡ Solar
-          </button>
+        <div
+          className="tab-bar"
+          role="tablist"
+          aria-label="Calculator views"
+          onKeyDown={onTabKeyDown}
+        >
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls={`panel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <span aria-hidden="true">{tab.icon}</span> {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Tab content */}
         <div className="tab-content">
-          {activeTab === 'sun' && <SunCard location={location} now={now} />}
-          {activeTab === 'moon' && <MoonCard location={location} now={now} />}
-          {activeTab === 'solar' && <SolarCard location={location} />}
+          {activeTab === 'sun' && (
+            <div role="tabpanel" id="panel-sun" aria-labelledby="tab-sun">
+              <SunCard location={location} now={now} />
+            </div>
+          )}
+          {activeTab === 'moon' && (
+            <div role="tabpanel" id="panel-moon" aria-labelledby="tab-moon">
+              <MoonCard location={location} now={now} />
+            </div>
+          )}
+          {activeTab === 'solar' && (
+            <div role="tabpanel" id="panel-solar" aria-labelledby="tab-solar">
+              <SolarCard location={location} now={now} />
+            </div>
+          )}
         </div>
       </main>
 
       <footer className="app-footer">
         <span>Fully offline PWA · All calculations run on-device · No data sent anywhere</span>
         <span>
-          © 2025 Sun Moon Solar ·{' '}
+          © 2026 Sun Moon Solar ·{' '}
           <a
             href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
             target="_blank"
