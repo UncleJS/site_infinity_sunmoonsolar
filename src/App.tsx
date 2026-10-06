@@ -8,10 +8,10 @@ import { loadLastLocation, saveLastLocation } from './lib/favorites'
 import { formatClock } from './lib/format'
 
 const DEFAULT_LOCATION: Location = {
-  name: 'London, UK',
-  lat: 51.5074,
-  lng: -0.1278,
-  timezone: 'Europe/London',
+  name: 'Centurion, South Africa',
+  lat: -25.8603,
+  lng: 28.1894,
+  timezone: 'Africa/Johannesburg',
 }
 
 const TABS = [

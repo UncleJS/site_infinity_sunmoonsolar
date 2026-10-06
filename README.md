@@ -341,7 +341,7 @@ The four key points in the solar year. At the **equinoxes** (≈ 20 March and 23
 | Clock | React state updated every 30 seconds; header and tables use the location IANA timezone (civil midnight, including 23h/25h DST days) |
 | Storage | Browser `localStorage` only — favourites and last location as JSON; invalid entries are dropped; nothing is sent to any server |
 | Tests | `npm test` / `bun run test` (Vitest) — timezone civil days, tropical facing, favourites schema |
-| Default location | London, UK (51.5074°N, 0.1278°W, `Europe/London`) |
+| Default location | Centurion, South Africa (25.8603°S, 28.1894°E, `Africa/Johannesburg`) |
 | Container | Rootless Podman; Bun runtime inside container; host requires only Podman and a POSIX shell |
 | Offline | Fully functional without network after initial load; no external fonts, no CDN resources, no analytics |
 
