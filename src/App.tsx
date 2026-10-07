@@ -128,7 +128,7 @@ export default function App() {
             CC BY-NC-SA 4.0
           </a>
           {' · '}
-          <span className="build-stamp">{__GIT_SHA__}</span>
+          <span className="build-stamp">{__GIT_SHA__} · {__BUILT_AT__}</span>
         </span>
       </footer>
     </div>

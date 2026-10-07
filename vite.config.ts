@@ -11,7 +11,19 @@ const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf-8')) as 
 const rawSha = process.env.VITE_GIT_SHA || process.env.GITHUB_SHA || 'dev'
 const gitShaFull = rawSha
 const gitShaShort = rawSha === 'dev' ? 'dev' : rawSha.slice(0, 7)
-const builtAt = new Date().toISOString()
+
+function formatBuiltAtStamp(date: Date): string {
+  const y = date.getUTCFullYear()
+  const mo = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(date.getUTCDate()).padStart(2, '0')
+  const h = String(date.getUTCHours()).padStart(2, '0')
+  const mi = String(date.getUTCMinutes()).padStart(2, '0')
+  return `${y}${mo}${d}${h}${mi}`
+}
+
+const builtAtDate = new Date()
+const builtAt = builtAtDate.toISOString()
+const builtAtStamp = formatBuiltAtStamp(builtAtDate)
 
 function versionJsonPlugin(): Plugin {
   return {
@@ -24,6 +36,7 @@ function versionJsonPlugin(): Plugin {
           gitSha: gitShaShort,
           gitShaFull,
           builtAt,
+          builtAtStamp,
         }, null, 2)}\n`,
       )
     },
@@ -36,6 +49,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
     __GIT_SHA__: JSON.stringify(gitShaShort),
     __GIT_SHA_FULL__: JSON.stringify(gitShaFull),
+    __BUILT_AT__: JSON.stringify(builtAtStamp),
   },
   plugins: [
     react(),
