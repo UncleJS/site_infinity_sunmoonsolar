@@ -12,12 +12,14 @@ const rawSha = process.env.VITE_GIT_SHA || process.env.GITHUB_SHA || 'dev'
 const gitShaFull = rawSha
 const gitShaShort = rawSha === 'dev' ? 'dev' : rawSha.slice(0, 7)
 
+/** YYYYMMDDHHMM in fixed GMT+2 (UTC+2), e.g. South Africa / SAST. */
 function formatBuiltAtStamp(date: Date): string {
-  const y = date.getUTCFullYear()
-  const mo = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(date.getUTCDate()).padStart(2, '0')
-  const h = String(date.getUTCHours()).padStart(2, '0')
-  const mi = String(date.getUTCMinutes()).padStart(2, '0')
+  const gmt2 = new Date(date.getTime() + 2 * 60 * 60 * 1000)
+  const y = gmt2.getUTCFullYear()
+  const mo = String(gmt2.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(gmt2.getUTCDate()).padStart(2, '0')
+  const h = String(gmt2.getUTCHours()).padStart(2, '0')
+  const mi = String(gmt2.getUTCMinutes()).padStart(2, '0')
   return `${y}${mo}${d}${h}${mi}`
 }
 

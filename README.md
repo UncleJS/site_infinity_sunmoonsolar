@@ -77,7 +77,7 @@ After a PR merges into `main`, **Deploy** empties the remote `FTP_SERVER_DIR`, t
 
 `base: './'` in Vite keeps assets working in a subdirectory. `public/.htaccess` is copied into `dist/` for Apache hosts.
 
-Each production build stamps the short git SHA and UTC publish time (`YYYYMMDDHHMM`) into the app footer (e.g. `a1b2c3d · 202610071935`) and writes `dist/version.json` (includes ISO `builtAt` and `builtAtStamp`). After deploy, open `/version.json` on the live site (or check the footer) to see which commit is published.
+Each production build stamps the short git SHA and GMT+2 publish time (`YYYYMMDDHHMM`) into the app footer (e.g. `a1b2c3d · 202610071935`) and writes `dist/version.json` (includes ISO `builtAt` and `builtAtStamp`). After deploy, open `/version.json` on the live site (or check the footer) to see which commit is published.
 
 ### What ends up on the server
 
