@@ -77,6 +77,8 @@ After a PR merges into `main`, **Deploy** uploads `dist/` via FTP. Configure the
 
 `base: './'` in Vite keeps assets working in a subdirectory. `public/.htaccess` is copied into `dist/` for Apache hosts.
 
+Each production build stamps the package version and git commit into the app footer (e.g. `v1.0.0 · a1b2c3d`) and writes `dist/version.json`. After deploy, open `/version.json` on the live site (or check the footer) to see which commit is published.
+
 ### What ends up on the server
 
 Whatever is inside `dist/` after `bun run build` on the CI runner — not the git repo root.

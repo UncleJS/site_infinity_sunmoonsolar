@@ -20,6 +20,11 @@ const TABS = [
   { id: 'solar' as const, label: 'Solar', icon: '⚡' },
 ]
 
+const COMMIT_URL =
+  __GIT_SHA__ === 'dev'
+    ? null
+    : `https://github.com/UncleJS/site_infinity_sunmoonsolar/commit/${__GIT_SHA_FULL__}`
+
 export default function App() {
   const [location, setLocation] = useState<Location>(() => loadLastLocation() ?? DEFAULT_LOCATION)
   const [now, setNow] = useState(new Date())
@@ -128,6 +133,17 @@ export default function App() {
           >
             CC BY-NC-SA 4.0
           </a>
+          {' · '}
+          <span className="build-stamp">
+            v{__APP_VERSION__} ·{' '}
+            {COMMIT_URL ? (
+              <a href={COMMIT_URL} target="_blank" rel="noopener noreferrer">
+                {__GIT_SHA__}
+              </a>
+            ) : (
+              __GIT_SHA__
+            )}
+          </span>
         </span>
       </footer>
     </div>

@@ -21,6 +21,8 @@ jobs:
         run: bun run test
 
       - name: Build
+        env:
+          VITE_GIT_SHA: ${{ github.sha }}
         run: bun run build
 
       - name: Upload dist/ via FTP
