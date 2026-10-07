@@ -14,8 +14,9 @@ A fully offline Progressive Web App (PWA) for sun position, moon phase, and sola
 ## Contents
 
 - [Features](#features)
-- [Getting Started (Development)](#getting-started-development)
+- [Contributing / CI](#contributing--ci)
 - [Deploying / Hosting](#deploying--hosting)
+- [Optional local preview](#optional-local-preview)
 - [Usage](#usage)
   - [Setting Your Location](#setting-your-location)
   - [☀️ Sun Tab](#sun-tab)
@@ -41,46 +42,19 @@ A fully offline Progressive Web App (PWA) for sun position, moon phase, and sola
 
 ---
 
-## Getting Started (Development)
+## Contributing / CI
 
-### Prerequisites
+Do **not** install Node.js or Bun on your laptop. Builds run on GitHub Actions.
 
-- [Podman](https://podman.io/) (rootless, no Docker required)
-- No Node.js or Bun required on the host — everything runs inside the container
+Normal flow:
 
-### Build and run
+1. Create a **feature branch** and push it to GitHub.
+2. Open a **pull request** into `main`.
+3. Workflow **CI** (`.github/workflows/ci.yml`) runs on the PR: `bun install`, `bun run test`, `bun run build`.
+4. **Merge** the PR when CI is green.
+5. Workflow **Deploy** (`.github/workflows/deploy.yml`) runs because the merge produces a push to `main`. It builds again and uploads `dist/` to the live host over FTP.
 
-Use the provided `dev.sh` script — it handles everything in one command:
-
-```bash
-bash dev.sh
-```
-
-`dev.sh` performs these steps in order:
-
-1. Builds the dev container image from `Containerfile.dev`
-2. Removes the old `utility-sunmoonsolar-dev` container (if running)
-3. Starts a new container on port **1026**
-4. Runs the production build (`tsc && vite build`) inside the container
-5. Copies the fresh `dist/` folder to the project root on the host
-
-The app is then available at **http://localhost:1026** and `dist/` is ready to deploy.
-
-### After any source change
-
-Run `bash dev.sh` again. It always does a full rebuild and refreshes `dist/` automatically.
-
-### View logs
-
-```bash
-podman logs -f utility-sunmoonsolar-dev
-```
-
-### Stop the container
-
-```bash
-podman rm -f utility-sunmoonsolar-dev
-```
+Do not push commits directly to `main` as the normal path.
 
 [↑ Back to contents](#toc)
 
@@ -88,52 +62,42 @@ podman rm -f utility-sunmoonsolar-dev
 
 ## Deploying / Hosting
 
-This is a fully static app — no server-side runtime is required. You only need a web server that can serve static files.
+The live site is the **contents of `dist/`** only — a static build (HTML, JS, CSS, service worker, manifest, icons, `.htaccess`). Source and containers are never uploaded.
 
-### 1. Build the production bundle
+### Automatic (preferred)
 
-Run the build inside the dev container:
+After a PR merges into `main`, **Deploy** uploads `dist/` via FTP. Configure these repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Purpose |
+|---|---|
+| `FTP_SERVER` | InfinityFree (or other) FTP hostname |
+| `FTP_USERNAME` | FTP username |
+| `FTP_PASSWORD` | FTP password |
+| `FTP_SERVER_DIR` | Remote directory ending with `/` (e.g. `/htdocs/` or `/htdocs/sunmoonsolar/`) |
+
+`base: './'` in Vite keeps assets working in a subdirectory. `public/.htaccess` is copied into `dist/` for Apache hosts.
+
+### What ends up on the server
+
+Whatever is inside `dist/` after `bun run build` on the CI runner — not the git repo root.
+
+[↑ Back to contents](#toc)
+
+---
+
+## Optional local preview
+
+If you want a local UI while developing, use Podman only (no host Node/Bun):
 
 ```bash
-podman exec utility-sunmoonsolar-dev bun run build
+podman build -t localhost/utility-sunmoonsolar-dev:latest -f Containerfile.dev .
+podman rm -f utility-sunmoonsolar-dev 2>/dev/null || true
+podman run -d --name utility-sunmoonsolar-dev -p 1026:1026 localhost/utility-sunmoonsolar-dev:latest
 ```
 
-This runs `tsc && vite build` and writes the output to the `dist/` folder in the project root.
+App: **http://localhost:1026** · Logs: `podman logs -f utility-sunmoonsolar-dev`
 
-### 2. Copy `dist/` to your web server
-
-The **`dist/`** folder is the only thing you need to deploy. Copy its entire contents to your web server's document root (e.g. `/var/www/html/` or the equivalent for your host):
-
-```bash
-rsync -av dist/ user@yourserver:/var/www/html/
-```
-
-`dist/` contains the compiled HTML, JS bundles, CSS, service worker, PWA manifest, and icons — everything needed to run the app offline after the first load.
-
-### 3. Configure your web server for deep links (optional)
-
-The app is a single page (`index.html`) with no client-side routes. A fallback to `index.html` is still useful for the service worker's navigation fallback and for any unknown path:
-
-**nginx**
-
-```nginx
-location / {
-    try_files $uri $uri/ /index.html;
-}
-```
-
-**Apache** (`.htaccess` in document root)
-
-```apache
-Options -MultiViews
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^ index.html [QSA,L]
-```
-
-**Netlify / Vercel / GitHub Pages**
-
-SPA fallback is handled automatically — no extra configuration needed.
+Local preview is optional. Production updates still come only from the Deploy workflow after a PR merge.
 
 [↑ Back to contents](#toc)
 
@@ -340,9 +304,9 @@ The four key points in the solar year. At the **equinoxes** (≈ 20 March and 23
 | PWA | Vite PWA plugin with service worker; installable on desktop and mobile |
 | Clock | React state updated every 30 seconds; header and tables use the location IANA timezone (civil midnight, including 23h/25h DST days) |
 | Storage | Browser `localStorage` only — favourites and last location as JSON; invalid entries are dropped; nothing is sent to any server |
-| Tests | `npm test` / `bun run test` (Vitest) — timezone civil days, tropical facing, favourites schema |
+| Tests | `bun run test` (Vitest) on CI — timezone civil days, tropical facing, favourites schema |
 | Default location | Centurion, South Africa (25.8603°S, 28.1894°E, `Africa/Johannesburg`) |
-| Container | Rootless Podman; Bun runtime inside container; host requires only Podman and a POSIX shell |
+| CI / deploy | PR to `main` → `ci.yml`; merge → `deploy.yml` builds and FTPs `dist/` (no host Node/Bun) |
 | Offline | Fully functional without network after initial load; no external fonts, no CDN resources, no analytics |
 
 [↑ Back to contents](#toc)
