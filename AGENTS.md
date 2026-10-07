@@ -4,12 +4,19 @@
 Static offline PWA — Sun, Moon & Solar calculator.
 Stack: React + Vite + TypeScript. No backend.
 
-## Dev Container
-- Container name: `utility-sunmoonsolar-dev`
-- Image: `localhost/utility-sunmoonsolar-dev:latest`
-- Port: host `1026` → container `1026`
+## Production deploy (source of truth)
+Live site updates happen **only via GitHub Actions after a PR is merged into `main`**.
 
-## After ANY source change — ONLY rebuild and restart dev
+1. Work on a feature branch; open a PR into `main`.
+2. `ci.yml` runs on the PR (install, test, build).
+3. After merge, `deploy.yml` builds on the runner and FTPs `dist/` to InfinityFree.
+
+Do **not** treat a local `dist/` folder as the live deploy path. Do **not** push commits straight to `main` as the normal workflow.
+
+## Optional local preview (Podman only)
+No Node/Bun on the host. Container name: `utility-sunmoonsolar-dev`. Port: host `1026` → container `1026`.
+
+After ANY source change for local preview — ONLY rebuild and restart the **dev** container:
 
 ```bash
 podman build -t localhost/utility-sunmoonsolar-dev:latest -f Containerfile.dev .
@@ -19,10 +26,8 @@ podman run -d --name utility-sunmoonsolar-dev -p 1026:1026 localhost/utility-sun
 
 **NEVER** build or restart any prod container unless the user explicitly says so.
 
-## Dev server URL
-http://localhost:1026
+Dev server URL: http://localhost:1026
 
-## Logs
 ```bash
 podman logs -f utility-sunmoonsolar-dev
 ```
